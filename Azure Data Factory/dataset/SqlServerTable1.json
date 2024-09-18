@@ -1,0 +1,31 @@
+{
+	"name": "SqlServerTable1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "source",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"schemascr": {
+				"type": "string"
+			},
+			"schematgt": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schemascr",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().schematgt",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

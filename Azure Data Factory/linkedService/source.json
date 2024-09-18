@@ -1,0 +1,21 @@
+{
+	"name": "source",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"server": "DESKTOP-TMTI7G7\\SQLEXPRESS",
+			"database": "migrat",
+			"encrypt": "optional",
+			"trustServerCertificate": true,
+			"authenticationType": "SQL",
+			"userName": "migration",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJlNWU2M2EwYS1mOTg3LTQ3ZjktYWRkMS01YjU2ZWJjYmI2MzQiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "integrationRuntime4",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
