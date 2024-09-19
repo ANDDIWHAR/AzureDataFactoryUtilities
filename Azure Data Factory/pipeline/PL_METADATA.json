@@ -5,6 +5,8 @@
 			{
 				"name": "Copy data1",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -29,9 +31,44 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select * from  FROM [config].[Pipelines_Config] where sourcecode=@pipeline().parameters.sourcecode and [ActiveFlag]='Y'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "dsazuresql",
+						"type": "DatasetReference",
+						"parameters": {
+							"TABLE": {
+								"value": "@pipeline().parameters.table",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
 			}
 		],
+		"parameters": {
+			"sourcecode": {
+				"type": "string"
+			},
+			"SCHEMA": {
+				"type": "string",
+				"defaultValue": "config"
+			},
+			"table": {
+				"type": "string",
+				"defaultValue": "Pipelines_Config"
+			}
+		},
 		"annotations": []
 	}
 }
