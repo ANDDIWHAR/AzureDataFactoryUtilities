@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@CONCAT\n('select COUNT(RunningStatus) AS CNT,RunningStatus  FROM config.Pipelines_Config where sourcecode=','''',pipeline().parameters.sourcecode,'''',\n'and \nActiveFlag=',\n'''',\nstring(pipeline().parameters.FLAG),\n'''','\nGROUP BY RunningStatus')\n\n",
+							"value": "@CONCAT\n('select COUNT(RunningStatus) AS CNT,RunningStatus  FROM config.Pipelines_Config where sourcecode=','''',pipeline().parameters.sourcecode,'''',\n'and \nActiveFlag=',\n'''',\nstring(pipeline().parameters.FLAG),\n'''','\nGROUP BY RunningStatus\nhaving COUNT(RunningStatus) >',0)\n\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
