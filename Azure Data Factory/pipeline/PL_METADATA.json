@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@CONCAT\n('select COUNT(RunningStatus) AS CNT,RunningStatus  FROM config.Pipelines_Config where sourcecode=','''',pipeline().parameters.sourcecode,'''',\n'and \nActiveFlag=',\n'''',\nstring(pipeline().parameters.FLAG),\n'''','\nGROUP BY RunningStatus\nhaving COUNT(RunningStatus) >',0)\n\n",
+							"value": "@concat('select COUNT(RunningStatus) AS CNT,RunningStatus  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.sourcecode,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.flag,\n'''',\n'GROUP BY RunningStatus \nhaving COUNT(RunningStatus)>0')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -58,40 +58,60 @@
 						"value": "@activity('lkp_config').output.value",
 						"type": "Expression"
 					},
-					"batchCount": 4,
+					"isSequential": true,
 					"activities": [
 						{
-							"name": "If Condition1",
-							"type": "IfCondition",
+							"name": "Append variable1",
+							"type": "AppendVariable",
 							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
-								"expression": {
-									"value": "@or(\n    or(\n       contains(item().RunningStatus,'RUNNING'),\ncontains(item().RunningStatus,'FAILED')),\ncontains(item().RunningStatus,null))",
+								"variableName": "STATUS",
+								"value": {
+									"value": "@item().RunningStatus",
 									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "execute load fl or dl",
-										"type": "Wait",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"waitTimeInSeconds": 1
-										}
-									}
-								],
-								"ifTrueActivities": [
-									{
-										"name": "another batch in progress or reun",
-										"type": "Wait",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"waitTimeInSeconds": 1
-										}
-									}
-								]
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(contains(variables('STATUS'),'RUNNING'),\ncontains(variables('STATUS'),'FAILED'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "RUN THE REST JOBS",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "another batch in progress OR FAILED",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
 							}
 						}
 					]
@@ -111,13 +131,13 @@
 				"type": "string",
 				"defaultValue": "Pipelines_Config"
 			},
-			"FLAG": {
+			"flag": {
 				"type": "string",
 				"defaultValue": "Y"
 			}
 		},
 		"variables": {
-			"status": {
+			"STATUS": {
 				"type": "Array"
 			}
 		},
