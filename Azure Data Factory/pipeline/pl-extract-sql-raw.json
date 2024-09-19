@@ -17,6 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[config].[generateIngestionSQL]",
 						"storedProcedureParameters": {
 							"dataSourceName": {
 								"type": "String",
