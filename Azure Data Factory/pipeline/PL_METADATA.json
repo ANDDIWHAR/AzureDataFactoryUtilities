@@ -58,7 +58,8 @@
 		],
 		"parameters": {
 			"sourcecode": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "DSA"
 			},
 			"SCHEMA": {
 				"type": "string",
