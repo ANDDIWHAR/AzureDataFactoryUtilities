@@ -67,7 +67,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@or(contains(item().RunningStatus,'RUNNING'),\ncontains(item().RunningStatus,'FAILED'))",
+									"value": "@or(\n    or(\n       contains(item().RunningStatus,'RUNNING'),\ncontains(item().RunningStatus,'FAILED')),\ncontains(item().RunningStatus,null))",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
