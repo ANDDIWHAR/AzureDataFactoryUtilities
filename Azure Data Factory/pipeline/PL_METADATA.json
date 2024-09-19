@@ -3,24 +3,6 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data1",
-				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"enableStaging": false
-				}
-			},
-			{
 				"name": "lkp_config",
 				"type": "Lookup",
 				"dependsOn": [],
@@ -36,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "select * from  FROM [config].[Pipelines_Config] where sourcecode=@pipeline().parameters.sourcecode and [ActiveFlag]='Y'",
+							"value": "@CONCAT\n('select COUNT(RunningStatus) AS CNT,RunningStatus  FROM config.Pipelines_Config where sourcecode=','''',pipeline().parameters.sourcecode,'''',\n'and \nActiveFlag=',\n'''',\nstring(pipeline().parameters.FLAG),\n'''','\nGROUP BY RunningStatus')\n\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -49,10 +31,70 @@
 							"TABLE": {
 								"value": "@pipeline().parameters.table",
 								"type": "Expression"
+							},
+							"SCHEMA": {
+								"value": "@pipeline().parameters.SCHEMA",
+								"type": "Expression"
 							}
 						}
 					},
 					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_config').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "If Condition1",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@or(contains(item().RunningStatus,'RUNNING'),\ncontains(item().RunningStatus,'FAILED'))",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "execute load fl or dl",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 1
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "another batch in progress or reun",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 1
+										}
+									}
+								]
+							}
+						}
+					]
 				}
 			}
 		],
@@ -68,6 +110,15 @@
 			"table": {
 				"type": "string",
 				"defaultValue": "Pipelines_Config"
+			},
+			"FLAG": {
+				"type": "string",
+				"defaultValue": "Y"
+			}
+		},
+		"variables": {
+			"status": {
+				"type": "Array"
 			}
 		},
 		"annotations": []
