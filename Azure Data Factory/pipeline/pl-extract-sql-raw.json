@@ -97,7 +97,7 @@
 								"sink": {
 									"type": "DelimitedTextSink",
 									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
+										"type": "AzureBlobStorageWriteSettings"
 									},
 									"formatSettings": {
 										"type": "DelimitedTextWriteSettings",
@@ -176,7 +176,17 @@
 								},
 								"dataset": {
 									"referenceName": "dssqlserver",
-									"type": "DatasetReference"
+									"type": "DatasetReference",
+									"parameters": {
+										"schem": {
+											"value": "@pipeline().parameters.dataSourceName",
+											"type": "Expression"
+										},
+										"tbl": {
+											"value": "@pipeline().parameters.containerName",
+											"type": "Expression"
+										}
+									}
 								}
 							}
 						},
@@ -200,7 +210,10 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"storedProcedureName": "[logging].[insertPipelineRunHistory]",
+								"storedProcedureName": {
+									"value": "@pipeline().parameters.dataSourceName",
+									"type": "Expression"
+								},
 								"storedProcedureParameters": {
 									"pipelineName": {
 										"value": {
@@ -238,6 +251,10 @@
 										"type": "String"
 									}
 								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
 							}
 						},
 						{
@@ -260,7 +277,10 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"storedProcedureName": "[logging].[updatePipelineRunHistory]",
+								"storedProcedureName": {
+									"value": "@pipeline().parameters.containerName",
+									"type": "Expression"
+								},
 								"storedProcedureParameters": {
 									"pipelineRunStatus": {
 										"value": "Succeeded",
@@ -274,6 +294,10 @@
 										"type": "Int32"
 									}
 								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
 							}
 						},
 						{
@@ -296,7 +320,10 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"storedProcedureName": "[logging].[updatePipelineRunHistory]",
+								"storedProcedureName": {
+									"value": "@pipeline().parameters.dataSourceName",
+									"type": "Expression"
+								},
 								"storedProcedureParameters": {
 									"pipelineRunStatus": {
 										"value": "Failed",
@@ -310,6 +337,10 @@
 										"type": "Int32"
 									}
 								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
 							}
 						}
 					]
