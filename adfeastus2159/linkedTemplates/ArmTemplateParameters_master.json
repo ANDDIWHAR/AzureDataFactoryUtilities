@@ -1,0 +1,75 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adfeastus2159"
+		},
+		"AzureBlobStorage1_connectionString": {
+			"value": ""
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"value": ""
+		},
+		"AzureSqlDatabase1_password": {
+			"value": ""
+		},
+		"AzureSynapseAnalytics1_password": {
+			"value": ""
+		},
+		"HttpServer1_password": {
+			"value": ""
+		},
+		"Snowflake1_password": {
+			"value": ""
+		},
+		"source_password": {
+			"value": ""
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://adlseastus2159.dfs.core.windows.net/"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_server": {
+			"value": "testmigratesqlserver.database.windows.net"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_database": {
+			"value": "testmigratesql"
+		},
+		"AzureSqlDatabase1_properties_typeProperties_userName": {
+			"value": "sqladminuser"
+		},
+		"AzureSynapseAnalytics1_properties_typeProperties_server": {
+			"value": "wkpsyneastus2.sql.azuresynapse.net"
+		},
+		"AzureSynapseAnalytics1_properties_typeProperties_database": {
+			"value": "dedpooluseastus2"
+		},
+		"AzureSynapseAnalytics1_properties_typeProperties_userName": {
+			"value": "sqladminuser"
+		},
+		"HttpServer1_properties_typeProperties_url": {
+			"value": "@{linkedService().url}"
+		},
+		"HttpServer1_properties_typeProperties_userName": {
+			"value": "diwakar96reddy@gmail.com"
+		},
+		"Snowflake1_properties_typeProperties_database": {
+			"value": "SNOWFLAKE_SAMPLE_DATA"
+		},
+		"source_properties_typeProperties_server": {
+			"value": "DESKTOP-TMTI7G7\\SQLEXPRESS"
+		},
+		"source_properties_typeProperties_database": {
+			"value": "DW2016"
+		},
+		"source_properties_typeProperties_userName": {
+			"value": "migration"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
