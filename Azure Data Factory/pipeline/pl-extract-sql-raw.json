@@ -118,7 +118,17 @@
 							"inputs": [
 								{
 									"referenceName": "dssqlserver",
-									"type": "DatasetReference"
+									"type": "DatasetReference",
+									"parameters": {
+										"schem": {
+											"value": "@pipeline().parameters.dataSourceName",
+											"type": "Expression"
+										},
+										"tbl": {
+											"value": "@pipeline().parameters.dataSourceName",
+											"type": "Expression"
+										}
+									}
 								}
 							],
 							"outputs": [
