@@ -1,5 +1,5 @@
 {
-	"name": "RUN_SUB_copy1",
+	"name": "RUN_SUCCESS",
 	"properties": {
 		"activities": [
 			{
@@ -7,7 +7,7 @@
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Stored procedure4",
+						"activity": "Script1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -326,8 +326,8 @@
 							]
 						},
 						{
-							"name": "success_conf_update_copy2",
-							"type": "SqlServerStoredProcedure",
+							"name": "SUCCESS",
+							"type": "Script",
 							"dependsOn": [
 								{
 									"activity": "cpy_data_copy2",
@@ -344,26 +344,26 @@
 								"secureInput": false
 							},
 							"userProperties": [],
-							"typeProperties": {
-								"storedProcedureName": "[config].[successstatus]",
-								"storedProcedureParameters": {
-									"id": {
-										"value": {
-											"value": "@item().Id",
-											"type": "Expression"
-										},
-										"type": "Int32"
-									}
-								}
-							},
 							"linkedServiceName": {
 								"referenceName": "AzureSqlDatabase1",
 								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('update [config].[Pipelines_Config] set RunningStatus=''SUCCESS'' where id=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
 							}
 						},
 						{
-							"name": "failed_cong_update_copy2",
-							"type": "SqlServerStoredProcedure",
+							"name": "FAIL",
+							"type": "Script",
 							"dependsOn": [
 								{
 									"activity": "cpy_data_copy2",
@@ -380,29 +380,29 @@
 								"secureInput": false
 							},
 							"userProperties": [],
-							"typeProperties": {
-								"storedProcedureName": "[config].[failstatus]",
-								"storedProcedureParameters": {
-									"id": {
-										"value": {
-											"value": "@item().Id",
-											"type": "Expression"
-										},
-										"type": "Int32"
-									}
-								}
-							},
 							"linkedServiceName": {
 								"referenceName": "AzureSqlDatabase1",
 								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('update [config].[Pipelines_Config] set RunningStatus=''FAILED'' where id=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
 							}
 						}
 					]
 				}
 			},
 			{
-				"name": "Stored procedure4",
-				"type": "SqlServerStoredProcedure",
+				"name": "Script1",
+				"type": "Script",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -412,12 +412,18 @@
 					"secureInput": false
 				},
 				"userProperties": [],
-				"typeProperties": {
-					"storedProcedureName": "[config].[resetstatus]"
-				},
 				"linkedServiceName": {
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "update [config].[Pipelines_Config] set RunningStatus='RUNNING'"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
 				}
 			}
 		],
