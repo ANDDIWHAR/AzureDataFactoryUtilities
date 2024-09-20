@@ -95,7 +95,7 @@
 					},
 					"ifFalseActivities": [
 						{
-							"name": "Execute Pipeline1",
+							"name": "RUN THE JOB",
 							"type": "ExecutePipeline",
 							"dependsOn": [],
 							"policy": {
