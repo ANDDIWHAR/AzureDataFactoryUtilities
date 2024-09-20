@@ -31,7 +31,7 @@
 								"value": "@pipeline().parameters.check",
 								"type": "Expression"
 							},
-							"schematgt": {
+							"tablesrc": {
 								"value": "@pipeline().parameters.check2",
 								"type": "Expression"
 							}
@@ -100,7 +100,7 @@
 											"value": "@item().table_schema",
 											"type": "Expression"
 										},
-										"schematgt": {
+										"tablesrc": {
 											"value": "@item().table_name",
 											"type": "Expression"
 										}
