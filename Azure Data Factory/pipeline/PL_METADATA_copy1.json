@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@concat('select COUNT(RunningStatus) AS CNT,RunningStatus  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.sourcecode,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.flag,\n'''',\n'GROUP BY RunningStatus \nhaving COUNT(RunningStatus)>0')",
+							"value": "SELECT \n    CASE \n\t    WHEN COUNT(CASE WHEN RunningStatus = 'RUNNING' THEN 1 END) > 0 THEN 'running'\n        WHEN COUNT(CASE WHEN RunningStatus = 'Failed' THEN 1 END) > 0 THEN 'fail'        \n        WHEN COUNT(CASE WHEN RunningStatus = 'SUCCESS' THEN 1 END) = COUNT(*) THEN 'success'\n        ELSE 'unknown'\n    END AS overall_status\nFROM config.Pipelines_Config where sourcecode='DSA'\nand ActiveFlag='Y';",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -42,51 +42,11 @@
 				}
 			},
 			{
-				"name": "ForEach1",
-				"type": "ForEach",
-				"dependsOn": [
-					{
-						"activity": "lkp_config",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('lkp_config').output.value",
-						"type": "Expression"
-					},
-					"isSequential": true,
-					"activities": [
-						{
-							"name": "Append variable1",
-							"type": "AppendVariable",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "STATUS",
-								"value": {
-									"value": "@item().RunningStatus",
-									"type": "Expression"
-								}
-							}
-						}
-					]
-				}
-			},
-			{
 				"name": "If Condition1",
 				"type": "IfCondition",
-				"dependsOn": [
-					{
-						"activity": "ForEach1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
@@ -123,6 +83,115 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "If Condition2",
+				"type": "IfCondition",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Switch1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": []
+			},
+			{
+				"name": "Switch1",
+				"type": "Switch",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@variables('STATUS')",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "fail",
+							"activities": [
+								{
+									"name": "handle the job failures",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							]
+						},
+						{
+							"value": "running",
+							"activities": [
+								{
+									"name": "Wait for the job to complete",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							]
+						},
+						{
+							"value": "success",
+							"activities": [
+								{
+									"name": "run the pipeline",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "RUN_SUB_copy1",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "lkp_config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "STATUS",
+					"value": {
+						"value": "@activity('lkp_config').output.value",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -145,7 +214,7 @@
 		},
 		"variables": {
 			"STATUS": {
-				"type": "Array"
+				"type": "String"
 			}
 		},
 		"annotations": []
