@@ -1,18 +1,11 @@
 {
-	"name": "RUN_SUCCESS",
+	"name": "RUN_FAIL",
 	"properties": {
 		"activities": [
 			{
 				"name": "LKP_CONFIG_TABLE",
 				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Script1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -25,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@concat('select *  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.SOURCE_CODE,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.FLAG,\n'''')",
+							"value": "@concat('select *  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.SOURCE_CODE,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.FLAG,\n'''','AND RunningStatus=''FAILED''')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -262,7 +255,14 @@
 						{
 							"name": "cpy_data_copy2",
 							"type": "Copy",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Script1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -396,34 +396,37 @@
 								],
 								"scriptBlockExecutionTimeout": "02:00:00"
 							}
+						},
+						{
+							"name": "Script1",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@CONCAT('update [config].[Pipelines_Config] set RunningStatus=''FAILED'' WHERE  ID=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
 						}
 					]
-				}
-			},
-			{
-				"name": "Script1",
-				"type": "Script",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"linkedServiceName": {
-					"referenceName": "AzureSqlDatabase1",
-					"type": "LinkedServiceReference"
-				},
-				"typeProperties": {
-					"scripts": [
-						{
-							"type": "Query",
-							"text": "update [config].[Pipelines_Config] set RunningStatus='RUNNING'"
-						}
-					],
-					"scriptBlockExecutionTimeout": "02:00:00"
 				}
 			}
 		],

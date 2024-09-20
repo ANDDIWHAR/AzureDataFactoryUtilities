@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT \n    CASE \n\t    WHEN COUNT(CASE WHEN RunningStatus = 'RUNNING' THEN 1 END) > 0 THEN 'running'\n        WHEN COUNT(CASE WHEN RunningStatus = 'Failed' THEN 1 END) > 0 THEN 'fail'        \n        WHEN COUNT(CASE WHEN RunningStatus = 'SUCCESS' THEN 1 END) = COUNT(*) THEN 'success'\n        ELSE 'unknown'\n    END AS overall_status\nFROM config.Pipelines_Config where sourcecode='DSA'\nand ActiveFlag='Y';",
+							"value": "SELECT \n    CASE \n\t    WHEN COUNT(CASE WHEN RunningStatus = 'RUNNING' THEN 1 END) > 0 THEN 'running'\n        WHEN COUNT(CASE WHEN RunningStatus = 'FAILED' THEN 1 END) > 0 THEN 'fail'        \n        WHEN COUNT(CASE WHEN RunningStatus = 'SUCCESS' THEN 1 END) = COUNT(*) THEN 'success'\n        ELSE 'unknown'\n    END AS overall_status\nFROM config.Pipelines_Config where sourcecode='DSA'\nand ActiveFlag='Y';",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -63,12 +63,19 @@
 							"value": "fail",
 							"activities": [
 								{
-									"name": "handle the job failures",
-									"type": "Wait",
+									"name": "run the pipeline_copy1",
+									"type": "ExecutePipeline",
 									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
 									"userProperties": [],
 									"typeProperties": {
-										"waitTimeInSeconds": 1
+										"pipeline": {
+											"referenceName": "RUN_FAIL",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true
 									}
 								}
 							]
@@ -83,6 +90,23 @@
 									"userProperties": [],
 									"typeProperties": {
 										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "Fail1",
+									"type": "Fail",
+									"dependsOn": [
+										{
+											"activity": "Wait for the job to complete",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"message": "one of the batch job has failed",
+										"errorCode": "1001"
 									}
 								}
 							]
@@ -100,7 +124,7 @@
 									"userProperties": [],
 									"typeProperties": {
 										"pipeline": {
-											"referenceName": "RUN_SUB_copy1",
+											"referenceName": "RUN_SUCCESS",
 											"type": "PipelineReference"
 										},
 										"waitOnCompletion": true
@@ -130,7 +154,7 @@
 				"typeProperties": {
 					"variableName": "STATUS",
 					"value": {
-						"value": "@activity('lkp_config').output.value",
+						"value": "@string(activity('lkp_config').output.value[0].overall_status)",
 						"type": "Expression"
 					}
 				}
@@ -156,7 +180,7 @@
 		},
 		"variables": {
 			"STATUS": {
-				"type": "Array"
+				"type": "String"
 			}
 		},
 		"annotations": []
