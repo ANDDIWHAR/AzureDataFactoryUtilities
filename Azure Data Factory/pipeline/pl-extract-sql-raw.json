@@ -32,7 +32,17 @@
 					},
 					"dataset": {
 						"referenceName": "dsazuresql",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"TABLE": {
+								"value": "@pipeline().parameters.dataSourceName",
+								"type": "Expression"
+							},
+							"SCHEMA": {
+								"value": "@pipeline().parameters.directoryName",
+								"type": "Expression"
+							}
+						}
 					},
 					"firstRowOnly": false
 				}

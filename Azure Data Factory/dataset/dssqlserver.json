@@ -1,12 +1,30 @@
 {
-    "name": "dssqlserver",
-    "properties": {
-        "linkedServiceName": {
-            "referenceName": "lssqlservernonprod",
-            "type": "LinkedServiceReference"
-        },
-        "annotations": [],
-        "type": "SqlServerTable",
-        "schema": []
-    }
+	"name": "dssqlserver",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "source",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"schem": {
+				"type": "string"
+			},
+			"tbl": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schem",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().tbl",
+				"type": "Expression"
+			}
+		}
+	}
 }
