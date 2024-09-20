@@ -1,0 +1,874 @@
+{
+	"name": "PL_METADATA_main",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_config",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT \n    CASE \n\t    WHEN COUNT(CASE WHEN RunningStatus = 'RUNNING' THEN 1 END) > 0 THEN 'running'\n        WHEN COUNT(CASE WHEN RunningStatus = 'FAILED' THEN 1 END) > 0 THEN 'fail'        \n        WHEN COUNT(CASE WHEN RunningStatus = 'SUCCESS' THEN 1 END) = COUNT(*) THEN 'success'\n        ELSE 'unknown'\n    END AS overall_status\nFROM config.Pipelines_Config where sourcecode='DSA'\nand ActiveFlag='Y';",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "dsazuresql",
+						"type": "DatasetReference",
+						"parameters": {
+							"TABLE": {
+								"value": "@pipeline().parameters.table",
+								"type": "Expression"
+							},
+							"SCHEMA": {
+								"value": "@pipeline().parameters.SCHEMA",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "running",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "lkp_config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('lkp_config').output.value[0].overall_status,'running')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "running_fail_copy1",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "curent batch job is runng",
+								"errorCode": "2019"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "running_fail",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "curent batch job is runng",
+								"errorCode": "2019"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "success",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "lkp_config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('lkp_config').output.value[0].overall_status,'success')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Fail_succes",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "no mre excutim",
+								"errorCode": "13145"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Wait_success",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "LKP_CONFIG_TABLE_success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Scriptsuccess",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select *  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.SOURCE_CODE,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.FLAG,\n'''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "dsazuresql",
+						"type": "DatasetReference",
+						"parameters": {
+							"TABLE": {
+								"value": "@pipeline().parameters.table",
+								"type": "Expression"
+							},
+							"SCHEMA": {
+								"value": "@pipeline().parameters.SCHEMA",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_success",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LKP_CONFIG_TABLE_success",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LKP_CONFIG_TABLE_success').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Switch1",
+							"type": "Switch",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@source_code",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "dsa",
+										"activities": [
+											{
+												"name": "cpy_data",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "Stored procedure5",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "SqlServerTable1",
+														"type": "DatasetReference",
+														"parameters": {
+															"schemascr": {
+																"value": "@item().SourceSchemaName",
+																"type": "Expression"
+															},
+															"tablesrc": {
+																"value": "@item().SourceTableName",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "dsazuresql",
+														"type": "DatasetReference",
+														"parameters": {
+															"TABLE": {
+																"value": "@item().TargetTableName",
+																"type": "Expression"
+															},
+															"SCHEMA": {
+																"value": "@item().TargetSchemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "success_conf_update",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "cpy_data",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[successstatus]",
+													"storedProcedureParameters": {
+														"id": {
+															"value": {
+																"value": "@item().Id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "AzureSqlDatabase1",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "failed_cong_update",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "cpy_data",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[failstatus]",
+													"storedProcedureParameters": {
+														"id": {
+															"value": {
+																"value": "@item().Id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "AzureSqlDatabase1",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Stored procedure5",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[resetstatus]"
+												},
+												"linkedServiceName": {
+													"referenceName": "AzureSqlDatabase1",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									},
+									{
+										"value": "sap"
+									},
+									{
+										"value": "ava"
+									}
+								]
+							}
+						},
+						{
+							"name": "cpy_data_copy2_success",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "SqlServerTable1",
+									"type": "DatasetReference",
+									"parameters": {
+										"schemascr": {
+											"value": "@item().SourceSchemaName",
+											"type": "Expression"
+										},
+										"tablesrc": {
+											"value": "@item().SourceTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "dsazuresql",
+									"type": "DatasetReference",
+									"parameters": {
+										"TABLE": {
+											"value": "@item().TargetTableName",
+											"type": "Expression"
+										},
+										"SCHEMA": {
+											"value": "@item().TargetSchemaName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "SUCCESS_succ",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "cpy_data_copy2_success",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('update [config].[Pipelines_Config] set RunningStatus=''SUCCESS'' where id=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "FAIL_succ",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "cpy_data_copy2_success",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('update [config].[Pipelines_Config] set RunningStatus=''FAILED'' where id=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Scriptsuccess",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "success",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "update [config].[Pipelines_Config] set RunningStatus='RUNNING'"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "LKP_CONFIG_TABLE_fail",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "FAIL",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select *  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.sourcecode,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.flag,\n'''','AND RunningStatus=''FAILED''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "dsazuresql",
+						"type": "DatasetReference",
+						"parameters": {
+							"TABLE": {
+								"value": "@pipeline().parameters.table",
+								"type": "Expression"
+							},
+							"SCHEMA": {
+								"value": "@pipeline().parameters.SCHEMA",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_fail",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LKP_CONFIG_TABLE_fail",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LKP_CONFIG_TABLE_fail').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "cpy_data_copy2_fail",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Script_fail",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "SqlServerTable1",
+									"type": "DatasetReference",
+									"parameters": {
+										"schemascr": {
+											"value": "@item().SourceSchemaName",
+											"type": "Expression"
+										},
+										"tablesrc": {
+											"value": "@item().SourceTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "dsazuresql",
+									"type": "DatasetReference",
+									"parameters": {
+										"TABLE": {
+											"value": "@item().TargetTableName",
+											"type": "Expression"
+										},
+										"SCHEMA": {
+											"value": "@item().TargetSchemaName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "SUCCESS_fail",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "cpy_data_copy2_fail",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('update [config].[Pipelines_Config] set RunningStatus=''SUCCESS'' where id=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "FAIL_fail",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "cpy_data_copy2_fail",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('update [config].[Pipelines_Config] set RunningStatus=''FAILED'' where id=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Script_fail",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@CONCAT('update [config].[Pipelines_Config] set RunningStatus=''FAILED'' WHERE  ID=','''',item().id,'''')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "FAIL",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "lkp_config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('lkp_config').output.value[0].overall_status,'fail')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Fail1",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "failu stoppf fail",
+								"errorCode": "2200"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Wait_Fail",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"sourcecode": {
+				"type": "string",
+				"defaultValue": "DSA"
+			},
+			"SCHEMA": {
+				"type": "string",
+				"defaultValue": "config"
+			},
+			"table": {
+				"type": "string",
+				"defaultValue": "Pipelines_Config"
+			},
+			"flag": {
+				"type": "string",
+				"defaultValue": "Y"
+			},
+			"SOURCE_CODE": {
+				"type": "string",
+				"defaultValue": "DSA"
+			}
+		},
+		"variables": {
+			"STATUS": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
