@@ -5,8 +5,6 @@
 			{
 				"name": "LKP_CONFIG_TABLE",
 				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Stored procedure4",
@@ -22,13 +20,37 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select *  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.SOURCE_CODE,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.FLAG,\n'''')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "dsazuresql",
+						"type": "DatasetReference",
+						"parameters": {
+							"TABLE": {
+								"value": "@pipeline().parameters.TABLESRC",
+								"type": "Expression"
+							},
+							"SCHEMA": {
+								"value": "@pipeline().parameters.SCHEMASRC",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
 			},
 			{
 				"name": "ForEach1",
 				"type": "ForEach",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "LKP_CONFIG_TABLE",
@@ -39,9 +61,14 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
+					"items": {
+						"value": "@activity('LKP_CONFIG_TABLE').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
 					"activities": [
 						{
-							"name": "Copy data1",
+							"name": "cpy_data",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
@@ -53,15 +80,65 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"enableStaging": false
-							}
+								"source": {
+									"type": "SqlServerSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "SqlServerTable1",
+									"type": "DatasetReference",
+									"parameters": {
+										"schemascr": {
+											"value": "@item().SourceSchemaName",
+											"type": "Expression"
+										},
+										"tablesrc": {
+											"value": "@item().SourceTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "dsazuresql",
+									"type": "DatasetReference",
+									"parameters": {
+										"TABLE": {
+											"value": "@item().TargetTableName",
+											"type": "Expression"
+										},
+										"SCHEMA": {
+											"value": "@item().TargetSchemaName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
 						},
 						{
-							"name": "Stored procedure2",
+							"name": "success_conf_update",
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Copy data1",
+									"activity": "cpy_data",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -74,14 +151,30 @@
 								"secureOutput": false,
 								"secureInput": false
 							},
-							"userProperties": []
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[config].[successstatus]",
+								"storedProcedureParameters": {
+									"id": {
+										"value": {
+											"value": "@item().Id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							}
 						},
 						{
-							"name": "Stored procedure3",
+							"name": "failed_cong_update",
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Copy data1",
+									"activity": "cpy_data",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -94,7 +187,23 @@
 								"secureOutput": false,
 								"secureInput": false
 							},
-							"userProperties": []
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[config].[failstatus]",
+								"storedProcedureParameters": {
+									"id": {
+										"value": {
+											"value": "@item().Id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase1",
+								"type": "LinkedServiceReference"
+							}
 						}
 					]
 				}
@@ -120,6 +229,24 @@
 				}
 			}
 		],
+		"parameters": {
+			"SCHEMASRC": {
+				"type": "string",
+				"defaultValue": "config"
+			},
+			"TABLESRC": {
+				"type": "string",
+				"defaultValue": "Pipelines_Config"
+			},
+			"SOURCE_CODE": {
+				"type": "string",
+				"defaultValue": "DSA"
+			},
+			"FLAG": {
+				"type": "string",
+				"defaultValue": "Y"
+			}
+		},
 		"annotations": []
 	}
 }
