@@ -42,64 +42,6 @@
 				}
 			},
 			{
-				"name": "If Condition1",
-				"type": "IfCondition",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"expression": {
-						"value": "@or(contains(variables('STATUS'),'RUNNING'),\ncontains(variables('STATUS'),'FAILED'))",
-						"type": "Expression"
-					},
-					"ifFalseActivities": [
-						{
-							"name": "RUN THE JOB",
-							"type": "ExecutePipeline",
-							"dependsOn": [],
-							"policy": {
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"pipeline": {
-									"referenceName": "RUN_SUB",
-									"type": "PipelineReference"
-								},
-								"waitOnCompletion": true
-							}
-						}
-					],
-					"ifTrueActivities": [
-						{
-							"name": "another batch in progress OR FAILED",
-							"type": "Wait",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"waitTimeInSeconds": 1
-							}
-						}
-					]
-				}
-			},
-			{
-				"name": "If Condition2",
-				"type": "IfCondition",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Switch1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": []
-			},
-			{
 				"name": "Switch1",
 				"type": "Switch",
 				"dependsOn": [
