@@ -3,24 +3,13 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "REST THE CONFIG TABLE STATUS TO RUNNING",
-				"type": "SqlServerStoredProcedure",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": []
-			},
-			{
 				"name": "LKP_CONFIG_TABLE",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "REST THE CONFIG TABLE STATUS TO RUNNING",
+						"activity": "Stored procedure4",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -38,6 +27,8 @@
 			{
 				"name": "ForEach1",
 				"type": "ForEach",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "LKP_CONFIG_TABLE",
@@ -106,6 +97,26 @@
 							"userProperties": []
 						}
 					]
+				}
+			},
+			{
+				"name": "Stored procedure4",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[config].[resetstatus]"
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
 				}
 			}
 		],
