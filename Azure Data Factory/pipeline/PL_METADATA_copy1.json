@@ -1,0 +1,153 @@
+{
+	"name": "PL_METADATA_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_config",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('select COUNT(RunningStatus) AS CNT,RunningStatus  FROM config.Pipelines_Config where sourcecode=','''',\npipeline().parameters.sourcecode,'''',\n'and ActiveFlag=',\n'''',\npipeline().parameters.flag,\n'''',\n'GROUP BY RunningStatus \nhaving COUNT(RunningStatus)>0')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "dsazuresql",
+						"type": "DatasetReference",
+						"parameters": {
+							"TABLE": {
+								"value": "@pipeline().parameters.table",
+								"type": "Expression"
+							},
+							"SCHEMA": {
+								"value": "@pipeline().parameters.SCHEMA",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_config').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Append variable1",
+							"type": "AppendVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "STATUS",
+								"value": {
+									"value": "@item().RunningStatus",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(contains(variables('STATUS'),'RUNNING'),\ncontains(variables('STATUS'),'FAILED'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "RUN THE JOB",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "RUN_SUB",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "another batch in progress OR FAILED",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"sourcecode": {
+				"type": "string",
+				"defaultValue": "DSA"
+			},
+			"SCHEMA": {
+				"type": "string",
+				"defaultValue": "config"
+			},
+			"table": {
+				"type": "string",
+				"defaultValue": "Pipelines_Config"
+			},
+			"flag": {
+				"type": "string",
+				"defaultValue": "Y"
+			}
+		},
+		"variables": {
+			"STATUS": {
+				"type": "Array"
+			}
+		},
+		"annotations": []
+	}
+}
