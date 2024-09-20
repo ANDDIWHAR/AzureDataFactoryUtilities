@@ -95,12 +95,19 @@
 					},
 					"ifFalseActivities": [
 						{
-							"name": "RUN THE REST JOBS",
-							"type": "Wait",
+							"name": "Execute Pipeline1",
+							"type": "ExecutePipeline",
 							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
 							"userProperties": [],
 							"typeProperties": {
-								"waitTimeInSeconds": 1
+								"pipeline": {
+									"referenceName": "RUN_SUB",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
 							}
 						}
 					],
